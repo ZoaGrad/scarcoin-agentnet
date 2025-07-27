@@ -1,0 +1,9 @@
+{
+  "ritualID": "0xb73...e8f",
+  "name": "Vault Unlock Ritual",
+  "description": "Unlocks the ritual vault based on provided payload.",
+  "endpoint": "/ritual/vault",
+  "parameters": {
+    "payload": "bytes"
+  }
+}
