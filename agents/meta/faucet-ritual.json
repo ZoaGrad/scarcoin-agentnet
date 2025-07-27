@@ -1,0 +1,9 @@
+{
+  "ritualID": "0xd4f...a1c",
+  "name": "Faucet Ritual",
+  "description": "Automated faucet ritual that mints \u2206 to a recipient address.",
+  "endpoint": "/faucet/{recipient}",
+  "parameters": {
+    "recipient": "address"
+  }
+}
