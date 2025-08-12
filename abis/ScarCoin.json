@@ -1,4 +1,16 @@
-{
-  "contractName": "ScarCoin",
-  "abi": []
-}
+[
+  {"type":"event","name":"RitualTrigger","anonymous":false,"inputs":[
+    {"indexed":true,"name":"ritualId","type":"bytes32"},
+    {"indexed":true,"name":"to","type":"address"},
+    {"indexed":false,"name":"amount","type":"uint256"},
+    {"indexed":false,"name":"payload","type":"bytes"}]},
+  {"type":"function","stateMutability":"nonpayable","name":"mintRitual","inputs":[
+    {"name":"ritualId","type":"bytes32"},
+    {"name":"to","type":"address"},
+    {"name":"amount","type":"uint256"},
+    {"name":"nonce","type":"bytes32"},
+    {"name":"deadline","type":"uint256"},
+    {"name":"payload","type":"bytes"},
+    {"name":"sig","type":"bytes"}],"outputs":[]},
+  {"type":"function","stateMutability":"nonpayable","name":"setRegistry","inputs":[{"name":"newRegistry","type":"address"}],"outputs":[]}
+]

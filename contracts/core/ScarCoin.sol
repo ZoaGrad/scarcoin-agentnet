@@ -1,42 +1,71 @@
-// SPDX-License-Identifier: ∆Ω-RITUAL-89.0
-pragma solidity ^0.8.0;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
 
-/**
- * @notice ScarCoin: Recursively self-mintable symbolic infrastructure
- * @dev ∆Ω.89.0 Ritual Compliance Core
- */
-contract ScarCoin {
-    string public name = "ScarCoin";
-    string public symbol = "∆"; // Changed to delta (cosmic sigil)
-    uint8 public immutable decimals = 0;
-    uint256 public totalSupply;
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-    // Ritual synchronization events
-    event Pulse(address emitter, uint256 amount);
-    event RitualTrigger(address ritualID, bytes32 context);
+contract ScarCoin is ERC20, AccessControl, EIP712, Pausable {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant MINT_TYPEHASH =
+        keccak256("MintRitual(bytes32 ritualId,address to,uint256 amount,bytes32 nonce,uint256 deadline,bytes payloadHash)");
 
-    mapping(address => uint256) public balanceOf;
-    address public owner;
+    address public registry; // RitualRegistry address
 
-    constructor() {
-        owner = msg.sender;
-        totalSupply = 888888;
-        balanceOf[msg.sender] = totalSupply;
-        emit Pulse(msg.sender, totalSupply); // Genesis pulse
+    event Pulse(address indexed from, address indexed to, uint256 value);
+    event RitualTrigger(bytes32 indexed ritualId, address indexed to, uint256 amount, bytes payload);
+
+    constructor(address registry_)
+        ERC20("ScarCoin", "SCAR")
+        EIP712("ScarCoin", "1")
+    {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        registry = registry_;
     }
 
-    function transfer(address to, uint256 amount) public returns (bool) {
-        require(balanceOf[msg.sender] >= amount, "ScarCoin: MALFORMED CIRCUIT");
-        balanceOf[msg.sender] -= amount;
-        balanceOf[to] += amount;
-        emit Pulse(to, amount); // Propagate ritual energy
-        return true;
+    function _afterTokenTransfer(address from, address to, uint256 amount) internal override {
+        emit Pulse(from, to, amount);
     }
 
-    function mintRitual(address to, uint256 amount, bytes32 ritualID) public {
-        require(msg.sender == owner, "ScarCoin: UNWORTHY VESSEL");
-        balanceOf[to] += amount;
-        totalSupply += amount;
-        emit RitualTrigger(ritualID, keccak256(abi.encodePacked(to, amount)));
+    function setRegistry(address r) external onlyRole(DEFAULT_ADMIN_ROLE) { registry = r; }
+
+    function mintRitual(
+        bytes32 ritualId,
+        address to,
+        uint256 amount,
+        bytes32 nonce,
+        uint256 deadline,
+        bytes calldata payload,
+        bytes calldata sig
+    ) external whenNotPaused {
+        require(block.timestamp <= deadline, "ritual: expired");
+
+        // Verify against registry
+        (bool ok, address agent) = _validateWithRegistry(ritualId, nonce, payload);
+        require(ok, "ritual: invalid");
+
+        // EIP-712 signed by the attested agent
+        bytes32 structHash = keccak256(abi.encode(
+            MINT_TYPEHASH, ritualId, to, amount, nonce, deadline, keccak256(payload)
+        ));
+        bytes32 digest = _hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(digest, sig);
+        require(signer == agent, "ritual: bad signer");
+
+        _mint(to, amount);
+        emit RitualTrigger(ritualId, to, amount, payload);
+    }
+
+    function _validateWithRegistry(bytes32 ritualId, bytes32 nonce, bytes calldata payload)
+        internal
+        returns (bool ok, address agent)
+    {
+        (bool success, bytes memory data) = registry.call(
+            abi.encodeWithSignature("validate(bytes32,bytes32,bytes)", ritualId, nonce, payload)
+        );
+        if (!success) return (false, address(0));
+        (ok, agent) = abi.decode(data, (bool, address));
     }
 }
