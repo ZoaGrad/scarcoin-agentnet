@@ -166,6 +166,19 @@ SCAR_DECIMALS=0
 ```
 in the agent environment to override.
 
+## Deployment (Vercel)
+**Monorepo setup**
+1. In Vercel → Project → Settings → *Build & Development*, set **Root Directory** to `frontend`.
+2. Add env vars (Production + Preview):
+   - `VITE_RPC_URL`, `VITE_SCAR_ADDR`, `VITE_REGISTRY_ADDR`, optional `VITE_SCAR_DECIMALS`
+3. The build copies lean ABIs from `abis/lean` into `frontend/public/abis` via `prebuild` (`scripts/copy-lean-abis.js`).
+4. SPA rewrites are configured in `frontend/vercel.json` so deep links don’t 404.
+5. Import ABIs from the public path:
+   ```ts
+   import scarAbi from '/abis/ScarCoin.json';
+   import registryAbi from '/abis/RitualRegistry.json';
+   ```
+
 ## License
 
 ScarCoin is released under the MIT License.
