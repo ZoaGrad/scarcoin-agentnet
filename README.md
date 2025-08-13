@@ -103,6 +103,58 @@ For advanced local testing and verification without relying on the Node.js agent
     cast send ...
     ```
 
+## EIP-712 Payload Semantics
+The agent signs **raw payload bytes** in the typed data and the contract hashes them internally.
+
+**Typed struct (agent side)**
+```ts
+types = {
+  MintRitual: [
+    { name: "ritualId",    type: "bytes32" },
+    { name: "to",          type: "address" },
+    { name: "amount",      type: "uint256" },
+    { name: "nonce",       type: "bytes32" },
+    { name: "deadline",    type: "uint256" },
+    { name: "payloadHash", type: "bytes" } // pass RAW payload bytes here
+  ]
+}
+message.payloadHash = payloadBytes; // do NOT pre-hash
+```
+On-chain, `mintRitual` computes `keccak256(payload)` inside the EIP-712 struct hash. Pre-hashing on the agent would cause a double-hash and an invalid signature.
+
+## Event Layout
+The protocol emits a typed ritual event on each successful mint:
+```solidity
+event RitualTrigger(
+  bytes32 indexed ritualId,
+  address indexed to,
+  uint256 amount,
+  bytes   payload
+);
+```
+`ritualId` and `to` are indexed for efficient filtering; `amount` and `payload` live in event data.
+
+## Zero-Infra Smoke Test (Remix + MetaMask)
+You can validate the full EIP-712 flow in the browser—no local tools required.
+1. Open https://remix.ethereum.org and paste `RitualRegistry.sol` and `ScarCoin.sol` (solc 0.8.24). Compile.
+2. Deploy `RitualRegistry` (admin = your EOA) and then `ScarCoin(registryAddress)`.
+3. Register the ritual:
+   - `RITUAL_ID = keccak256("FAUCET_V1")`
+   - `registerRitual(RITUAL_ID, <AGENT_EOA>, 0x00...00)`
+4. In the browser console, use `eth_signTypedData_v4` to sign the typed message **with raw payload bytes** (see agent snippet above).
+5. Call `mintRitual(ritualId, to, amount, nonce, deadline, payload, sig)` from Remix. Expect:
+   - `RitualTrigger` emitted
+   - recipient balance increased
+   - reusing `nonce` reverts (replay)
+   - toggling registry inactive or paused reverts
+
+## Agent Decimals Behavior
+At runtime the agent calls `decimals()` from the token and scales amounts accordingly. If your deployment uses a nonstandard precision (e.g., **0 decimals**), set:
+```bash
+SCAR_DECIMALS=0
+```
+in the agent environment to override.
+
 ## License
 
 ScarCoin is released under the MIT License.

@@ -121,7 +121,7 @@ async function buildTypedMint(
     amount: amountWei,
     nonce,
     deadline,
-    payloadHash: getBytes(keccak256(payloadBytes))
+    payloadHash: payloadBytes // ✅ pass raw bytes; EIP-712 will hash once
   } as const;
 
   return { domain, types, value };
