@@ -1,0 +1,57 @@
+name: build-and-abis
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  hardhat:
+    name: Hardhat • compile & export lean ABIs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Show versions
+        run: |
+          node -v
+          npm -v
+          npx hardhat --version
+
+      - name: Compile (Hardhat)
+        run: npx hardhat compile
+
+      - name: Generate lean ABIs
+        run: |
+          node scripts/generate-lean-abis.js
+          echo "Lean ABIs generated at abis/lean"
+
+      - name: Upload artifacts & ABIs
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-and-lean-abis
+          path: |
+            artifacts/**/*.json
+            abis/lean/**/*.json
+
+  foundry:
+    name: Foundry • optional build
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('foundry.toml') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Foundry
+        run: |
+          curl -L https://foundry.paradigm.xyz | bash
+          ~/.foundry/bin/foundryup
+      - name: Build (forge)
+        run: ~/.foundry/bin/forge build

@@ -10,5 +10,10 @@
     "hardhat": "^2.26.3",
     "solc": "^0.8.30",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "abi:lean": "node scripts/generate-lean-abis.js",
+    "build:abi": "npm run compile && npm run abi:lean"
   }
 }
