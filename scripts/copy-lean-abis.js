@@ -6,8 +6,12 @@ const repoRoot = path.join(__dirname, '..');
 const src = path.join(repoRoot, 'abis', 'lean');
 const dst = path.join(repoRoot, 'frontend', 'public', 'abis');
 
+const isCI = process.env.CI === 'true' || !!process.env.VERCEL;
 if (!fs.existsSync(src)) {
-  console.warn('[copy-lean-abis] Source ABIs not found:', src, '(skipping)');
+  const msg = `[copy-lean-abis] Source ABIs not found at ${src}.
+  Did you run 'npx hardhat compile && node scripts/generate-lean-abis.js' or download the CI artifact?`;
+  if (isCI) { console.error(msg); process.exit(1); }
+  console.warn(msg + ' (continuing for local dev)');
   process.exit(0);
 }
 
