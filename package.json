@@ -1,0 +1,21 @@
+{
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "@types/node": "^24.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "ethers": "^6.7.1"
+  },
+  "devDependencies": {
+    "hardhat": "^2.26.3",
+    "solc": "^0.8.30",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "abi:lean": "node scripts/generate-lean-abis.js",
+    "build:abi": "npm run compile && npm run abi:lean",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  }
+}

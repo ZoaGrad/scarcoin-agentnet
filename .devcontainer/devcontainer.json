@@ -1,0 +1,23 @@
+{
+  "name": "scarcoin-agentnet (Node 20)",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "postCreateCommand": "corepack enable || true && npm ci && bash .devcontainer/setup-foundry.sh || true",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "NomicFoundation.hardhat-solidity",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "FORCE_COLOR": "1"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": "false",
+      "upgradePackages": "true"
+    }
+  }
+}

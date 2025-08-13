@@ -1,4 +1,7 @@
-{
-  "contractName": "RitualRegistry",
-  "abi": []
-}
+[
+  {"type":"function","stateMutability":"nonpayable","name":"registerRitual","inputs":[
+    {"name":"ritualId","type":"bytes32"},{"name":"agent","type":"address"},{"name":"schema","type":"bytes32"}],"outputs":[]},
+  {"type":"function","stateMutability":"view","name":"validate","inputs":[
+    {"name":"ritualId","type":"bytes32"},{"name":"nonce","type":"bytes32"},{"name":"payload","type":"bytes"}],
+    "outputs":[{"name":"ok","type":"bool"},{"name":"agent","type":"address"}]}
+]
