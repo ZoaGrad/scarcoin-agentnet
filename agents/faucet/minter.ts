@@ -67,6 +67,12 @@ function sha256Hex(s: string): string {
 let _decimalsCache: number | null = null;
 async function getScarDecimals(): Promise<number> {
   if (_decimalsCache !== null) return _decimalsCache;
+  // Optional hard override via env (useful if token is truly 0-decimals)
+  const envDec = process.env.SCAR_DECIMALS;
+  if (envDec && Number.isFinite(Number(envDec))) {
+    _decimalsCache = Number(envDec);
+    return _decimalsCache;
+  }
   try {
     // Requires "decimals" in lean ABI
     const d = await Scar.decimals();
@@ -78,8 +84,8 @@ async function getScarDecimals(): Promise<number> {
   } catch (e) {
     // ignore, fall through to fallback
   }
-  // Fallback preference: 18 (ERC20 norm). If you truly use 0-decimals, change order.
-  _decimalsCache = 18;
+  // Prefer 0 if your README/spec says 0-decimals; else leave 18 as the ERC20 norm.
+  _decimalsCache = 0; // ← set to 18 if your token is 18-decimals
   return _decimalsCache;
 }
 
@@ -143,6 +149,11 @@ export async function mintFaucet(to: string, amount: string, payload: unknown) {
   // Optional preflight
   const pre = await validateOnRegistry(RITUAL_ID, nonce, payloadBytes);
   if (!pre.ok) throw new Error("Registry.validate rejected (inactive/unknown ritual).");
+  // Ensure the registry’s attested agent == our signer EOA
+  const expected = (await agentWallet.getAddress()).toLowerCase();
+  if (pre.agent.toLowerCase() !== expected) {
+    throw new Error(`Registry agent mismatch: expected ${expected}, got ${pre.agent}`);
+  }
 
   // EIP-712 signature by agent
   const { domain, types, value } = await buildTypedMint(to, amountWei, nonce, deadline, payloadBytes);

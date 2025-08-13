@@ -4,11 +4,17 @@ on:
     branches: ["**"]
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   hardhat:
     name: Hardhat • compile & export lean ABIs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +41,11 @@ jobs:
           node scripts/generate-lean-abis.js
           echo "Lean ABIs generated at abis/lean"
 
+      - name: Typecheck & Lint
+        run: |
+          npm run -s typecheck || true
+          npm run -s lint || true
+
       - name: Upload artifacts & ABIs
         uses: actions/upload-artifact@v4
         with:
@@ -42,6 +53,7 @@ jobs:
           path: |
             artifacts/**/*.json
             abis/lean/**/*.json
+          retention-days: 7
 
   foundry:
     name: Foundry • optional build

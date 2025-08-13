@@ -14,6 +14,8 @@
   "scripts": {
     "compile": "hardhat compile",
     "abi:lean": "node scripts/generate-lean-abis.js",
-    "build:abi": "npm run compile && npm run abi:lean"
+    "build:abi": "npm run compile && npm run abi:lean",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   }
 }
