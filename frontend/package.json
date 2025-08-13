@@ -7,7 +7,7 @@
     "predev": "node ../scripts/copy-lean-abis.js",
     "prebuild": "node ../scripts/copy-lean-abis.js",
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-dist.js",
     "preview": "vite preview --port 4173"
   },
   "engines": { "node": ">=20" },
