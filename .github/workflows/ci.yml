@@ -65,5 +65,5 @@ jobs:
         run: |
           curl -L https://foundry.paradigm.xyz | bash
           ~/.foundry/bin/foundryup
-      - name: Build (forge)
-        run: ~/.foundry/bin/forge build
+      - name: Test (forge)
+        run: ~/.foundry/bin/forge test -vvv
