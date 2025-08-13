@@ -15,7 +15,14 @@ contract RitualRegistry is AccessControl, Pausable {
     }
 
     mapping(bytes32 => Ritual) public rituals;
+    // Global nonce scope: a nonce is single-use across ALL rituals.
+    // key = keccak256(abi.encode(nonce))
     mapping(bytes32 => bool) public usedNonces;
+
+    /// -----------------------------------------------------------------------
+    /// Errors
+    /// -----------------------------------------------------------------------
+    error Replay();
 
     event RitualRegistered(bytes32 indexed ritualId, address agent, bytes32 schema);
     event RitualStatus(bytes32 indexed ritualId, bool active);
@@ -56,8 +63,9 @@ contract RitualRegistry is AccessControl, Pausable {
     }
 
     function consumeNonce(bytes32 ritualId, bytes32 nonce) external whenNotPaused onlyRole(SCARCOIN_ROLE) {
-        bytes32 key = keccak256(abi.encode(ritualId, nonce));
-        require(!usedNonces[key], "nonce: used");
+        // Global nonces: ignore ritualId for uniqueness; keep it in the event for observability.
+        bytes32 key = keccak256(abi.encode(nonce));
+        if (usedNonces[key]) revert Replay();
         usedNonces[key] = true;
         emit NonceConsumed(ritualId, nonce);
     }

@@ -122,6 +122,17 @@ message.payloadHash = payloadBytes; // do NOT pre-hash
 ```
 On-chain, `mintRitual` computes `keccak256(payload)` inside the EIP-712 struct hash. Pre-hashing on the agent would cause a double-hash and an invalid signature.
 
+## Nonce Scope (GLOBAL)
+ScarCoin uses **global nonces**: each `nonce` value can be consumed **only once across all rituals**.
+This provides the strongest replay defense when multiple rituals coexist.
+
+Flow:
+1. Agent signs the EIP-712 `MintRitual` message containing `nonce`.
+2. Contract verifies signature & validity.
+3. Registry consumes the `nonce` **globally** (`consumeNonce(ritualId, nonce)`), reverting with `Replay()` if already used.
+
+Implication: Reusing the same `nonce` for a different `ritualId` will **revert**.
+
 ## Event Layout
 The protocol emits a typed ritual event on each successful mint:
 ```solidity

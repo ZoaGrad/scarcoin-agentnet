@@ -32,6 +32,8 @@ interface IScarCoin {
 }
 
 contract RitualMintExtras is Test {
+  error Replay();
+
   IRitualRegistry reg;
   IScarCoin      scar;
   bytes32 constant SCARCOIN_ROLE = keccak256("SCARCOIN_ROLE");
@@ -168,7 +170,7 @@ contract RitualMintExtras is Test {
     scar.mintRitual(r1, to, amount, nonce, deadline, payload, s1);
 
     bytes memory s2 = _sign(agentPk, r2, to, amount, nonce, deadline, payload, address(scar));
-    vm.expectRevert("nonce: used");
+    vm.expectRevert(Replay.selector);
     scar.mintRitual(r2, to, amount, nonce, deadline, payload, s2);
   }
 
