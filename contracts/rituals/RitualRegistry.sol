@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
-contract RitualRegistry is Ownable, AccessControl, Pausable {
+contract RitualRegistry is AccessControl, Pausable {
     bytes32 public constant CURATOR_ROLE = keccak256("CURATOR_ROLE");
-    address public scarCoinContract;
+    bytes32 public constant SCARCOIN_ROLE = keccak256("SCARCOIN_ROLE");
 
     struct Ritual {
         address agent;
@@ -16,27 +15,15 @@ contract RitualRegistry is Ownable, AccessControl, Pausable {
     }
 
     mapping(bytes32 => Ritual) public rituals;
-    mapping(bytes32 => bool) public seenNonces;
+    mapping(bytes32 => bool) public usedNonces;
 
     event RitualRegistered(bytes32 indexed ritualId, address agent, bytes32 schema);
     event RitualStatus(bytes32 indexed ritualId, bool active);
-    event ScarCoinContractUpdated(address indexed newScarCoinContract);
+    event NonceConsumed(bytes32 indexed ritualId, bytes32 indexed nonce);
 
-    modifier onlyScarCoin() {
-        require(msg.sender == scarCoinContract, "Only ScarCoin contract can call this");
-        _;
-    }
-
-    constructor(address owner_) {
-        _transferOwnership(owner_);
-        _grantRole(DEFAULT_ADMIN_ROLE, owner_);
-        _grantRole(CURATOR_ROLE, owner_);
-    }
-
-    function setScarCoinContract(address _scarCoinContract) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(_scarCoinContract != address(0), "Invalid address");
-        scarCoinContract = _scarCoinContract;
-        emit ScarCoinContractUpdated(_scarCoinContract);
+    constructor(address admin) {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(CURATOR_ROLE, admin);
     }
 
     function registerRitual(bytes32 ritualId, address agent, bytes32 schema)
@@ -57,19 +44,21 @@ contract RitualRegistry is Ownable, AccessControl, Pausable {
         emit RitualStatus(ritualId, active);
     }
 
-    function validateAndConsumeNonce(bytes32 ritualId, bytes32 nonce)
+    function validate(bytes32 ritualId)
         external
+        view
         whenNotPaused
-        onlyScarCoin
-        returns (address agent)
+        returns (bool ok, address agent)
     {
-        require(!seenNonces[nonce], "ritual: replay");
-        seenNonces[nonce] = true;
-
         Ritual memory r = rituals[ritualId];
-        require(r.active, "ritual: inactive");
-        require(r.agent != address(0), "ritual: unknown");
+        ok = r.active && r.agent != address(0);
+        agent = r.agent;
+    }
 
-        return r.agent;
+    function consumeNonce(bytes32 ritualId, bytes32 nonce) external whenNotPaused onlyRole(SCARCOIN_ROLE) {
+        bytes32 key = keccak256(abi.encode(ritualId, nonce));
+        require(!usedNonces[key], "nonce: used");
+        usedNonces[key] = true;
+        emit NonceConsumed(ritualId, nonce);
     }
 }

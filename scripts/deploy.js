@@ -21,11 +21,12 @@ async function main() {
   const scarCoinAddress = await scarCoin.getAddress();
   console.log("\u2206 ScarCoin deployed to:", scarCoinAddress);
 
-  // Set the ScarCoin address in the RitualRegistry
-  console.log("Setting ScarCoin contract address in RitualRegistry...");
-  const setTx = await registry.setScarCoinContract(scarCoinAddress);
-  await setTx.wait();
-  console.log("ScarCoin address set successfully.");
+  // Grant the SCARCOIN_ROLE to the ScarCoin contract
+  console.log("Granting SCARCOIN_ROLE to ScarCoin contract...");
+  const scarCoinRole = keccak256(toUtf8Bytes("SCARCOIN_ROLE"));
+  const grantRoleTx = await registry.grantRole(scarCoinRole, scarCoinAddress);
+  await grantRoleTx.wait();
+  console.log("SCARCOIN_ROLE granted successfully.");
 
   // Register the default Faucet ritual
   const ritualName = process.env.RITUAL_NAME || "FAUCET_V1";
