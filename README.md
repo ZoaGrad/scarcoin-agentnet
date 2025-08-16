@@ -1,184 +1,37 @@
-# ScarCoin Genesis Protocol
+# Scarcoin Agentnet
 
-ScarCoin is a symbolic cryptocurrency and infrastructure protocol designed to explore new ways of connecting on‑chain events with off‑chain agent networks. It combines smart contracts, an on‑chain ritual registry, and a daemonized agent network to create responsive token flows.
+## Phase 3 Enhancement
 
-This repository contains the hardened, production-ready version of the protocol.
+This repository has been enhanced as part of Phase 3 ScarCoin blueprint alignment.
 
-## Hardened Features
+### Features
 
-The protocol has been hardened with a focus on security, auditability, and a professional development workflow.
+- ✅ Unified CI/CD pipeline
+- ✅ Security gates and compliance
+- ✅ Comprehensive testing
+- ✅ Performance monitoring
+- ✅ Documentation and governance
 
-- **Secure Ritual Registry**: The `RitualRegistry` contract is now owned and managed by a `CURATOR_ROLE`, preventing unauthorized ritual registration. It is also `Pausable` for emergency stops.
-- **EIP-712 Based Minting**: The `ScarCoin` contract now uses EIP-712 signatures for all minting operations. This ensures that only authorized, off-chain agents can trigger the creation of new tokens, eliminating the insecure "transfer-as-mint" pattern.
-- **Robust Agent Minter**: The new Faucet Minter agent (`agents/faucet/minter.ts`) is a typed, production-grade script that correctly signs EIP-712 messages and dynamically detects the token's decimal precision.
-- **Continuous Integration**: The repository includes a GitHub Actions workflow that automatically compiles contracts and generates lean ABIs, ensuring code is always in a buildable state.
-- **Cloud Development Environment**: A Dev Container configuration is provided for a consistent, one-click development setup using GitHub Codespaces.
-
-## Repository Structure
-
-The repository has been updated to reflect the new architecture and development tools.
-
-```
-scarcoin-agentnet/
-├── .github/
-│   └── workflows/
-│       └── ci.yml                   # GitHub Actions CI workflow
-├── .devcontainer/
-│   ├── devcontainer.json            # Dev Container configuration
-│   └── setup-foundry.sh             # Foundry installer for Dev Container
-├── contracts/
-│   ├── core/
-│   │   └── ScarCoin.sol             # Hardened EIP-712 token
-│   └── rituals/
-│       └── RitualRegistry.sol       # Hardened, role-based registry
-├── agents/
-│   └── faucet/
-│       ├── minter.ts                # Secure, EIP-712 Faucet Minter agent
-│       └── env.d.ts                 # TypeScript env definitions
-├── scripts/
-│   ├── deploy.js                    # Updated Hardhat deployment script
-│   └── generate-lean-abis.js        # Script to generate minimal ABIs for the agent
-├── abis/
-│   ├── lean/                        # Lean ABIs for agent use
-│   └── ...
-├── frontend/                        # (Unchanged) React/Next.js interface
-├── .env.example                     # Environment variables
-├── hardhat.config.js                # Hardhat config (solc 0.8.24)
-└── BOOK_OF_RITUALS.md               # (Outdated) Project notes
-```
-
-## Getting Started
-
-The recommended way to work with this repository is to use a cloud-based development environment, which avoids local setup issues.
-
-### Recommended Setup: GitHub Codespaces
-
-1.  Click the "Code" button on the GitHub repository page.
-2.  Select the "Codespaces" tab.
-3.  Click "Create codespace on main".
-4.  This will launch a fully configured development environment in your browser with all dependencies (Node.js, Foundry) pre-installed. All commands below will work out-of-the-box.
-
-### Build
-
-The contracts can be built using the provided npm script, which runs Hardhat and then generates the lean ABIs for the agent.
+### Quick Start
 
 ```bash
-npm run build:abi
-```
-This will populate the `artifacts/` and `abis/lean/` directories. The CI pipeline also runs this on every push.
+# Clone the repository
+git clone https://github.com/ZoaGrad/scarcoin-agentnet.git
 
-### Run the Agent
+# Install dependencies
+npm install  # or pip install -r requirements.txt
 
-The Faucet Minter agent requires several environment variables to be set. Copy `.env.example` to `.env` and fill in the following:
+# Run tests
+npm test     # or pytest
 
-- `RPC_URL`: URL for an Ethereum JSON-RPC provider.
-- `SCAR_ADDR`: The deployed `ScarCoin` contract address.
-- `REGISTRY_ADDR`: The deployed `RitualRegistry` contract address.
-- `AGENT_PK`: The private key of the authorized agent wallet.
-
-Once configured, you can test a mint from the command line:
-```bash
-npx ts-node agents/faucet/minter.ts <RECIPIENT_ADDRESS> <AMOUNT> '{"reason":"test"}'
+# Start development server
+npm start    # or python app.py
 ```
 
-### Local Verification (Foundry)
+### Contributing
 
-For advanced local testing and verification without relying on the Node.js agent, you can use Foundry.
+Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting PRs.
 
-1.  **Start a local chain:**
-    ```bash
-    anvil
-    ```
-2.  **Deploy the contracts:**
-    ```bash
-    # Deploy Registry
-    forge create src/RitualRegistry.sol:RitualRegistry --private-key <YOUR_PK>
+### License
 
-    # Deploy ScarCoin, passing the Registry's address
-    forge create src/ScarCoin.sol:ScarCoin --constructor-args <REGISTRY_ADDRESS> --private-key <YOUR_PK>
-    ```
-3.  **Use `cast` to interact with the contracts:**
-    ```bash
-    # Register a ritual, sign a message, and call mintRitual
-    cast send ...
-    ```
-
-## EIP-712 Payload Semantics
-The agent signs **raw payload bytes** in the typed data and the contract hashes them internally.
-
-**Typed struct (agent side)**
-```ts
-types = {
-  MintRitual: [
-    { name: "ritualId",    type: "bytes32" },
-    { name: "to",          type: "address" },
-    { name: "amount",      type: "uint256" },
-    { name: "nonce",       type: "bytes32" },
-    { name: "deadline",    type: "uint256" },
-    { name: "payloadHash", type: "bytes" } // pass RAW payload bytes here
-  ]
-}
-message.payloadHash = payloadBytes; // do NOT pre-hash
-```
-On-chain, `mintRitual` computes `keccak256(payload)` inside the EIP-712 struct hash. Pre-hashing on the agent would cause a double-hash and an invalid signature.
-
-## Nonce Scope (GLOBAL)
-ScarCoin uses **global nonces**: each `nonce` value can be consumed **only once across all rituals**.
-This provides the strongest replay defense when multiple rituals coexist.
-
-Flow:
-1. Agent signs the EIP-712 `MintRitual` message containing `nonce`.
-2. Contract verifies signature & validity.
-3. Registry consumes the `nonce` **globally** (`consumeNonce(ritualId, nonce)`), reverting with `Replay()` if already used.
-
-Implication: Reusing the same `nonce` for a different `ritualId` will **revert**.
-
-## Event Layout
-The protocol emits a typed ritual event on each successful mint:
-```solidity
-event RitualTrigger(
-  bytes32 indexed ritualId,
-  address indexed to,
-  uint256 amount,
-  bytes   payload
-);
-```
-`ritualId` and `to` are indexed for efficient filtering; `amount` and `payload` live in event data.
-
-## Zero-Infra Smoke Test (Remix + MetaMask)
-You can validate the full EIP-712 flow in the browser—no local tools required.
-1. Open https://remix.ethereum.org and paste `RitualRegistry.sol` and `ScarCoin.sol` (solc 0.8.24). Compile.
-2. Deploy `RitualRegistry` (admin = your EOA) and then `ScarCoin(registryAddress)`.
-3. Register the ritual:
-   - `RITUAL_ID = keccak256("FAUCET_V1")`
-   - `registerRitual(RITUAL_ID, <AGENT_EOA>, 0x00...00)`
-4. In the browser console, use `eth_signTypedData_v4` to sign the typed message **with raw payload bytes** (see agent snippet above).
-5. Call `mintRitual(ritualId, to, amount, nonce, deadline, payload, sig)` from Remix. Expect:
-   - `RitualTrigger` emitted
-   - recipient balance increased
-   - reusing `nonce` reverts (replay)
-   - toggling registry inactive or paused reverts
-
-## Agent Decimals Behavior
-At runtime the agent calls `decimals()` from the token and scales amounts accordingly. If your deployment uses a nonstandard precision (e.g., **0 decimals**), set:
-```bash
-SCAR_DECIMALS=0
-```
-in the agent environment to override.
-
-## Deployment (Vercel)
-**Monorepo setup**
-1. In Vercel → Project → Settings → *Build & Development*, set **Root Directory** to `frontend`.
-2. Add env vars (Production + Preview):
-   - `VITE_RPC_URL`, `VITE_SCAR_ADDR`, `VITE_REGISTRY_ADDR`, optional `VITE_SCAR_DECIMALS`
-3. The build copies lean ABIs from `abis/lean` into `frontend/public/abis` via `prebuild` (`scripts/copy-lean-abis.js`).
-4. SPA rewrites are configured in `frontend/vercel.json` so deep links don’t 404.
-5. Import ABIs from the public path:
-   ```ts
-   import scarAbi from '/abis/ScarCoin.json';
-   import registryAbi from '/abis/RitualRegistry.json';
-   ```
-
-## License
-
-ScarCoin is released under the MIT License.
+MIT License - see [LICENSE](LICENSE) file for details.
