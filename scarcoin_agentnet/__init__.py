@@ -1,0 +1,1 @@
+# ScarCoin AgentNet package
